@@ -1,4 +1,6 @@
-// lora-server/server.js
+// ─────────────────────────────────────────────
+// LoRa Simulation Gateway (Render-ready)
+// ─────────────────────────────────────────────
 
 const express = require('express');
 const cors = require('cors');
@@ -7,28 +9,34 @@ const { getFirestore } = require('firebase-admin/firestore');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 // ── Middleware ─────────────────────────────────
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// ── Firebase Admin Init ────────────────────────
+// ── Firebase Admin Init (FIXED) ────────────────
 let db;
 
 try {
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
-    ? require(process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
-    : null;
+  let serviceAccount = null;
 
-  if (serviceAccount) {
-    initializeApp({ credential: cert(serviceAccount) });
-  } else {
-    initializeApp(); // fallback
+  // ✅ Parse JSON from Render ENV (SECURE)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   }
+
+  if (!serviceAccount) {
+    throw new Error("Missing FIREBASE_SERVICE_ACCOUNT environment variable");
+  }
+
+  initializeApp({
+    credential: cert(serviceAccount),
+  });
 
   db = getFirestore();
   console.log('[LoRa] Firebase connected');
+
 } catch (err) {
   console.error('[LoRa] Firebase init failed:', err.message);
   console.warn('[LoRa] Running in SIMULATION mode');
@@ -42,16 +50,25 @@ function validateIncident(body) {
   const { type, location } = body;
   const validTypes = ['fire', 'medical', 'security'];
 
-  if (!validTypes.includes(type))
+  if (!validTypes.includes(type)) {
     return 'Invalid type (fire | medical | security)';
+  }
 
-  if (!location || !location.trim())
+  if (!location || !location.trim()) {
     return 'Location is required';
+  }
 
   return null;
 }
 
-// ── ROUTE: RECEIVE INCIDENT ────────────────────
+// ─────────────────────────────────────────────
+// ROUTES
+// ─────────────────────────────────────────────
+
+/**
+ * POST /incident
+ * Receives LoRa SOS and forwards to Firestore
+ */
 app.post('/incident', async (req, res) => {
   const { type, location } = req.body;
 
@@ -69,7 +86,7 @@ app.post('/incident', async (req, res) => {
     status: 'active',
     assignedTo: null,
     timestamp: Date.now(),
-    mode: 'lora'
+    mode: 'lora',
   };
 
   // ── Firestore write ─────────────────────────
@@ -79,17 +96,18 @@ app.post('/incident', async (req, res) => {
 
       console.log(`[LoRa] Stored: ${docRef.id}`);
 
-      // ❗ NO assignment here — handled by Firebase Functions
-
       return res.status(201).json({
         success: true,
         incidentId: docRef.id,
-        mode: 'lora'
+        mode: 'lora',
       });
 
     } catch (err) {
       console.error('[LoRa] Firestore error:', err);
-      return res.status(500).json({ success: false });
+      return res.status(500).json({
+        success: false,
+        error: 'Firestore write failed',
+      });
     }
   }
 
@@ -100,20 +118,26 @@ app.post('/incident', async (req, res) => {
   return res.status(201).json({
     success: true,
     incidentId: simId,
-    mode: 'simulation'
+    mode: 'simulation',
   });
 });
 
-// ── HEALTH CHECK ───────────────────────────────
+/**
+ * GET /status
+ * Health check
+ */
 app.get('/status', (req, res) => {
   res.json({
     status: 'online',
     firestore: db ? 'connected' : 'simulation',
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 });
 
-// ── SIMULATION VIEW ────────────────────────────
+/**
+ * GET /incidents
+ * Only for simulation mode
+ */
 app.get('/incidents', (req, res) => {
   if (db) {
     return res.json({ message: 'Check Firestore console' });
@@ -121,7 +145,7 @@ app.get('/incidents', (req, res) => {
   res.json({ incidents: simulatedIncidents });
 });
 
-// ── START SERVER ───────────────────────────────
+// ── Start server ───────────────────────────────
 app.listen(PORT, () => {
   console.log(`🚨 LoRa Server running on http://localhost:${PORT}`);
 });
