@@ -1,56 +1,57 @@
-// src/firebase/notifications.js
 import { getToken, onMessage, isSupported } from 'firebase/messaging';
-import { messaging } from './firebase';
+import { messaging, db } from './firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 const VAPID_KEY = process.env.REACT_APP_FIREBASE_VAPID_KEY;
 
 /**
- * Request notification permission and get FCM token.
- * Returns the token string, or null if unsupported/denied.
+ * Init FCM + store token in staff
  */
-export async function initNotifications() {
+export async function initNotifications(staffId = "staff_01") {
   try {
     const supported = await isSupported();
     if (!supported || !messaging) {
-      console.warn('[FCM] Not supported in this environment.');
+      console.warn('[FCM] Not supported.');
       return null;
     }
 
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      console.warn('[FCM] Notification permission denied.');
+      console.warn('[FCM] Permission denied.');
       return null;
     }
 
     const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+
     if (token) {
       console.log('[FCM] Token:', token);
-      // In production: save token to Firestore for targeting specific staff
+
+      // ✅ Save token to Firestore
+      await updateDoc(doc(db, "staff", staffId), {
+        fcmToken: token
+      });
+
       return token;
-    } else {
-      console.warn('[FCM] No token received. Check VAPID key.');
-      return null;
     }
+
+    return null;
   } catch (err) {
-    console.error('[FCM] initNotifications error:', err);
+    console.error('[FCM] Error:', err);
     return null;
   }
 }
 
 /**
- * Listen for foreground (in-app) FCM messages.
- * Calls onMessageCallback({ title, body, data }) when a message arrives.
+ * Foreground notifications
  */
-export function listenForegroundMessages(onMessageCallback) {
+export function listenForegroundMessages(callback) {
   if (!messaging) return () => {};
 
-  const unsubscribe = onMessage(messaging, (payload) => {
-    console.log('[FCM] Foreground message:', payload);
-    const title = payload.notification?.title || 'RESPOND Alert';
-    const body  = payload.notification?.body  || 'New incident reported.';
-    const data  = payload.data || {};
-    onMessageCallback({ title, body, data });
+  return onMessage(messaging, (payload) => {
+    callback({
+      title: payload.notification?.title || 'RESPOND Alert',
+      body: payload.notification?.body || 'New incident',
+      data: payload.data || {}
+    });
   });
-
-  return unsubscribe; // call this to stop listening
 }

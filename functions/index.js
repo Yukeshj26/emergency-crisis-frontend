@@ -1,5 +1,5 @@
 const functions = require("firebase-functions");
-const { db } = require("./firebaseAdmin");
+const { admin, db } = require("./firebaseAdmin");
 
 /**
  * Assign nearest available staff
@@ -14,12 +14,12 @@ async function assignStaff(incident) {
 
   let selectedStaff = null;
 
-  const incidentFloor = incident.location.replace("Room ", "");
+  const incidentFloor = incident.location.match(/\d+/)?.[0]?.[0];
 
-  // Priority: same floor
+  // Same floor priority
   snapshot.forEach((doc) => {
     const staff = doc.data();
-    if (!selectedStaff && staff.floor === incidentFloor) {
+    if (!selectedStaff && String(staff.floor) === incidentFloor) {
       selectedStaff = { id: doc.id, ...staff };
     }
   });
@@ -34,7 +34,7 @@ async function assignStaff(incident) {
 }
 
 /**
- * On incident create → assign staff
+ * 🔥 On incident create → assign staff
  */
 exports.onIncidentCreate = functions.firestore
   .document("incidents/{incidentId}")
@@ -45,7 +45,6 @@ exports.onIncidentCreate = functions.firestore
     if (incident.assignedTo) return null;
 
     const staff = await assignStaff(incident);
-
     if (!staff) return null;
 
     await ref.update({
@@ -61,13 +60,13 @@ exports.onIncidentCreate = functions.firestore
   });
 
 /**
- * On incident update → free staff when resolved
+ * 🔓 Free staff on resolve
  */
 exports.onIncidentUpdate = functions.firestore
   .document("incidents/{incidentId}")
   .onUpdate(async (change) => {
     const before = change.before.data();
-    const after = change.after.data();
+    const after  = change.after.data();
 
     if (before.status !== "resolved" && after.status === "resolved") {
       if (!after.assignedTo) return null;
@@ -75,6 +74,51 @@ exports.onIncidentUpdate = functions.firestore
       await db.collection("staff")
         .doc(after.assignedTo)
         .update({ available: true });
+    }
+
+    return null;
+  });
+
+/**
+ * 🔔 SEND FCM ON ASSIGNMENT
+ */
+exports.notifyOnAssignment = functions.firestore
+  .document("incidents/{incidentId}")
+  .onUpdate(async (change) => {
+    const before = change.before.data();
+    const after  = change.after.data();
+
+    if (before.assignedTo === after.assignedTo || !after.assignedTo) {
+      return null;
+    }
+
+    try {
+      const staffDoc = await db
+        .collection("staff")
+        .doc(after.assignedTo)
+        .get();
+
+      const staff = staffDoc.data();
+
+      if (!staff?.fcmToken) {
+        console.warn("No FCM token");
+        return null;
+      }
+
+      const message = {
+        token: staff.fcmToken,
+        notification: {
+          title: "🚨 New Incident Assigned",
+          body: `${after.type.toUpperCase()} at ${after.location}`
+        }
+      };
+
+      await admin.messaging().send(message);
+
+      console.log("✅ Notification sent");
+
+    } catch (err) {
+      console.error("❌ FCM Error:", err);
     }
 
     return null;

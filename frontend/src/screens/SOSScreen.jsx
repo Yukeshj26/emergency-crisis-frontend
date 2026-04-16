@@ -26,7 +26,7 @@ export default function SOSScreen({ isOnline, showToast }) {
 
   const location = customLocation.trim() || selectedLocation;
 
-  // ── HOLD LOGIC (FIXED: no memory leak) ─────────────────────
+  // ── HOLD LOGIC (FIXED) ─────────────────────
   const startHold = () => {
     if (!selectedType || !location || sending) return;
 
@@ -53,18 +53,23 @@ export default function SOSScreen({ isOnline, showToast }) {
     setHoldProgress(0);
   };
 
-  // ── TRIGGER SOS (FIXED FLOW) ───────────────────────────────
+  // ── TRIGGER SOS (FINAL FLOW) ─────────────────
   const triggerSOS = async () => {
     setHoldProgress(0);
 
     const result = await sendSOS(selectedType, location, {
-      forceLoRa: loraMode, // ✅ critical
+      forceLoRa: loraMode,
     });
 
     if (result.success) {
       const modeInfo = MODE_CONFIG[result.mode] || MODE_CONFIG.online;
 
       showToast(`SOS sent via ${modeInfo.label}`, 'success');
+
+      // 🔥 TRIGGER MAP HIGHLIGHT
+      window.dispatchEvent(new CustomEvent('sos:triggered', {
+        detail: { type: selectedType }
+      }));
 
       setLastSent({
         ...result,
@@ -94,7 +99,7 @@ export default function SOSScreen({ isOnline, showToast }) {
       animation: 'fade-in 0.4s ease',
     }}>
 
-      {/* Header */}
+      {/* HEADER */}
       <div>
         <div style={{
           display: 'flex',
@@ -111,24 +116,42 @@ export default function SOSScreen({ isOnline, showToast }) {
             {isOnline ? 'ONLINE' : 'OFFLINE'}
           </span>
         </div>
+
+        <p style={{ color: '#888', fontSize: '13px' }}>
+          Emergency crisis response system
+        </p>
       </div>
 
       {/* TYPE */}
       <div>
+        <p style={{ fontSize: '12px', marginBottom: '10px' }}>
+          SELECT INCIDENT TYPE
+        </p>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
           {Object.entries(SOS_TYPES).map(([key, info]) => {
             const isSelected = selectedType === key;
+
             return (
               <button
                 key={key}
                 onClick={() => setSelectedType(isSelected ? null : key)}
                 style={{
-                  border: isSelected ? `2px solid ${info.color}` : '1px solid gray',
-                  padding: 16,
+                  background: isSelected ? info.bg : '#111',
+                  border: `1px solid ${isSelected ? info.color : '#333'}`,
+                  borderRadius: '12px',
+                  padding: '16px',
+                  transition: '0.2s',
                 }}
               >
-                {info.emoji}
-                <div>{info.label}</div>
+                <div style={{ fontSize: '24px' }}>{info.emoji}</div>
+                <div style={{
+                  fontSize: '12px',
+                  color: isSelected ? info.color : '#aaa',
+                  fontWeight: 700,
+                }}>
+                  {info.label}
+                </div>
               </button>
             );
           })}
@@ -137,18 +160,33 @@ export default function SOSScreen({ isOnline, showToast }) {
 
       {/* LOCATION */}
       <div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {LOCATIONS.map((loc) => (
-            <button
-              key={loc}
-              onClick={() => {
-                setSelectedLocation(loc);
-                setCustomLocation('');
-              }}
-            >
-              {loc}
-            </button>
-          ))}
+        <p style={{ fontSize: '12px', marginBottom: '10px' }}>
+          YOUR LOCATION
+        </p>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+          {LOCATIONS.map((loc) => {
+            const isSel = selectedLocation === loc;
+
+            return (
+              <button
+                key={loc}
+                onClick={() => {
+                  setSelectedLocation(isSel ? '' : loc);
+                  setCustomLocation('');
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  border: isSel ? '1px solid #00c2ff' : '1px solid #333',
+                  background: isSel ? '#00c2ff22' : '#111',
+                  color: isSel ? '#00c2ff' : '#aaa',
+                }}
+              >
+                {loc}
+              </button>
+            );
+          })}
         </div>
 
         <input
@@ -157,46 +195,77 @@ export default function SOSScreen({ isOnline, showToast }) {
             setCustomLocation(e.target.value);
             setSelectedLocation('');
           }}
-          placeholder="Custom location"
+          placeholder="Custom location..."
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid #333',
+            background: '#111',
+            color: '#fff',
+          }}
         />
       </div>
 
       {/* LORA */}
       <div>
-        <label>
+        <label style={{ fontSize: '13px' }}>
           <input
             type="checkbox"
             checked={loraMode}
             onChange={() => setLoraMode(!loraMode)}
           />
-          LoRa Mode
+          {' '}Use LoRa (offline radio)
         </label>
       </div>
 
       {/* SOS BUTTON */}
-      <div>
+      <div style={{ textAlign: 'center' }}>
         <button
           onMouseDown={startHold}
           onMouseUp={cancelHold}
           onMouseLeave={cancelHold}
           disabled={!canSend}
+          style={{
+            width: '120px',
+            height: '120px',
+            borderRadius: '50%',
+            background: canSend ? '#ff4500' : '#333',
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '14px',
+          }}
         >
           {sending
-            ? 'Sending...'
+            ? '...'
             : holdProgress > 0
               ? `${Math.round(holdProgress)}%`
               : 'HOLD'}
         </button>
+
+        <p style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
+          Hold to send SOS
+        </p>
       </div>
 
       {/* STATUS */}
-      {confirmed && <p>✅ SOS Sent</p>}
+      {confirmed && <p style={{ color: '#00ff88' }}>✅ SOS Sent</p>}
 
       {/* LAST SENT */}
       {lastSent && (
-        <div>
-          <p>{lastSent.type} — {lastSent.location}</p>
-          <p>{lastSent.mode}</p>
+        <div style={{
+          background: '#111',
+          padding: '12px',
+          borderRadius: '10px',
+          border: '1px solid #333',
+        }}>
+          <p>{SOS_TYPES[lastSent.type]?.emoji} {lastSent.type} — {lastSent.location}</p>
+          <p style={{ fontSize: '12px', color: '#888' }}>
+            {new Date(lastSent.sentAt).toLocaleTimeString()}
+          </p>
+          <p style={{ fontSize: '12px' }}>
+            Mode: {lastSent.mode}
+          </p>
         </div>
       )}
     </div>
