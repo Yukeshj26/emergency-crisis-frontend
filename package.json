@@ -1,20 +1,12 @@
 {
-<<<<<<< HEAD
-  "name": "emergency-response-app",
-  "version": "1.0.0",
-=======
   "name": "crysalis",
   "version": "2.0.0",
->>>>>>> a076e50 (initial commit)
   "private": true,
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.16.2",
     "firebase": "^10.7.0",
     "framer-motion": "^12.38.0",
-<<<<<<< HEAD
-=======
     "idb": "^8.0.0",
->>>>>>> a076e50 (initial commit)
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "^5.0.1"
@@ -26,20 +18,7 @@
     "eject": "react-scripts eject"
   },
   "browserslist": {
-<<<<<<< HEAD
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-=======
     "production": [">0.2%", "not dead", "not op_mini all"],
     "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
->>>>>>> a076e50 (initial commit)
   }
 }
