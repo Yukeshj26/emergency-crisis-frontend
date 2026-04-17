@@ -1,204 +1,440 @@
-// existing-src/screens/NearbyServices.jsx 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Loader } from "@googlemaps/js-api-loader";
+import { motion } from "framer-motion";
 
 const MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const SERVICE_TYPES = [
-  { id: 'hospital',     label: 'Hospitals',     emoji: '🏥', primaryType: 'hospital',      color: '#00c2ff' },
-  { id: 'police',       label: 'Police',        emoji: '👮', primaryType: 'police',         color: '#ff4500' },
-  { id: 'fire_station', label: 'Fire Stations', emoji: '🚒', primaryType: 'fire_station',   color: '#ffc300' },
-  { id: 'pharmacy',     label: 'Pharmacies',    emoji: '💊', primaryType: 'pharmacy',       color: '#00ff88' },
+  {
+    id: "hospital",
+    label: "Hospitals",
+    emoji: "🏥",
+    primaryType: "hospital",
+    color: "#00c2ff",
+  },
+  {
+    id: "police",
+    label: "Police",
+    emoji: "👮",
+    primaryType: "police",
+    color: "#5b8cff",
+  },
+  {
+    id: "fire_station",
+    label: "Fire",
+    emoji: "🚒",
+    primaryType: "fire_station",
+    color: "#ff5a5a",
+  },
+  {
+    id: "pharmacy",
+    label: "Pharmacy",
+    emoji: "💊",
+    primaryType: "pharmacy",
+    color: "#00ff88",
+  },
 ];
 
-export default function NearbyServices({ showToast }) {
-  const mapRef        = useRef(null);
-  const googleMapRef  = useRef(null);
-  const markersRef    = useRef([]);
-  const highlightCircleRef = useRef(null);
+export default function NearbyServices() {
+  const mapRef = useRef(null);
+  const googleMapRef = useRef(null);
+  const markersRef = useRef([]);
 
-  const [location,    setLocation]    = useState(null);
-  const [loading,     setLoading]     = useState(true);
-  const [locError,    setLocError]    = useState(null);
-  const [activeType,  setActiveType]  = useState('hospital');
-  const [places,      setPlaces]      = useState([]);
-  const [searching,   setSearching]   = useState(false);
-  const [mapsLoaded,  setMapsLoaded]  = useState(false);
+  const [location, setLocation] = useState(null);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState("");
 
-  // ── Load Google Maps ───────────────────────
+  const [activeType, setActiveType] = useState("hospital");
+  const [places, setPlaces] = useState([]);
+
+  /* ---------------- Load Google Maps ---------------- */
   useEffect(() => {
-    if (!MAPS_API_KEY || MAPS_API_KEY === 'your_google_maps_key') {
+    if (!MAPS_API_KEY) {
+      setError("Missing Google Maps API Key");
       setLoading(false);
-      setLocError('Google Maps API key not configured.');
       return;
     }
 
     const loader = new Loader({
       apiKey: MAPS_API_KEY,
-      version: 'weekly',
-      libraries: ['places', 'marker'],
+      version: "weekly",
+      libraries: ["places"],
     });
 
-    loader.load()
+    loader
+      .load()
       .then(() => setMapsLoaded(true))
       .catch(() => {
-        setLocError('Failed to load Google Maps.');
+        setError("Failed to load Google Maps");
         setLoading(false);
       });
   }, []);
 
-  // ── Get user location ──────────────────────
+  /* ---------------- Get User Location ---------------- */
   useEffect(() => {
     if (!mapsLoaded) return;
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
         setLoading(false);
       },
       () => {
-        setLocation({ lat: 13.0827, lng: 80.2707 }); // fallback
+        setLocation({
+          lat: 13.0827,
+          lng: 80.2707,
+        });
         setLoading(false);
-        showToast('Using default location', 'warning');
       }
     );
   }, [mapsLoaded]);
 
-  // ── Init map ───────────────────────────────
+  /* ---------------- Initialize Map ---------------- */
   useEffect(() => {
-    if (!location || !mapsLoaded || !mapRef.current || googleMapRef.current) return;
+    if (!location || !mapsLoaded || googleMapRef.current) return;
 
     googleMapRef.current = new window.google.maps.Map(mapRef.current, {
       center: location,
       zoom: 14,
-      styles: DARK_MAP_STYLES,
       disableDefaultUI: true,
       zoomControl: true,
+      styles: [
+        {
+          elementType: "geometry",
+          stylers: [{ color: "#0b0f19" }],
+        },
+      ],
     });
 
     new window.google.maps.Marker({
       position: location,
       map: googleMapRef.current,
-      title: 'Your Location',
+      title: "You are here",
     });
   }, [location, mapsLoaded]);
 
-  // ── Search nearby ──────────────────────────
-  const searchNearby = useCallback(async (type) => {
-    if (!googleMapRef.current || !location) return;
+  /* ---------------- Search Nearby ---------------- */
+  const searchNearby = useCallback(
+    async (type) => {
+      if (!googleMapRef.current || !location) return;
 
-    const typeConfig = SERVICE_TYPES.find((t) => t.id === type);
-    if (!typeConfig) return;
+      setSearching(true);
+      setPlaces([]);
 
-    setSearching(true);
-    setPlaces([]);
+      markersRef.current.forEach((m) => m.setMap(null));
+      markersRef.current = [];
 
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = [];
+      try {
+        const config = SERVICE_TYPES.find((x) => x.id === type);
 
-    try {
-      const { Place, SearchNearbyRankPreference } = await window.google.maps.importLibrary('places');
+        const { Place, SearchNearbyRankPreference } =
+          await window.google.maps.importLibrary("places");
 
-      const request = {
-        fields: ['displayName', 'location', 'formattedAddress', 'rating'],
-        locationRestriction: {
-          center: new window.google.maps.LatLng(location.lat, location.lng),
-          radius: 5000,
-        },
-        includedPrimaryTypes: [typeConfig.primaryType],
-        maxResultCount: 8,
-        rankPreference: SearchNearbyRankPreference.DISTANCE,
-      };
+        const request = {
+          fields: [
+            "displayName",
+            "location",
+            "formattedAddress",
+            "rating",
+          ],
+          locationRestriction: {
+            center: new window.google.maps.LatLng(
+              location.lat,
+              location.lng
+            ),
+            radius: 5000,
+          },
+          includedPrimaryTypes: [config.primaryType],
+          maxResultCount: 8,
+          rankPreference:
+            SearchNearbyRankPreference.DISTANCE,
+        };
 
-      const { places: results } = await Place.searchNearby(request);
-      setSearching(false);
+        const { places: results = [] } =
+          await Place.searchNearby(request);
 
-      if (!results) return;
+        const normalized = results.map((p) => ({
+          name: p.displayName,
+          address: p.formattedAddress,
+          rating: p.rating || 0,
+          lat: p.location.lat(),
+          lng: p.location.lng(),
+        }));
 
-      const normalized = results.map((p) => ({
-        place_id: p.id,
-        name: p.displayName,
-        vicinity: p.formattedAddress,
-        rating: p.rating,
-        latLng: p.location,
-      }));
+        setPlaces(normalized);
 
-      setPlaces(normalized);
+        normalized.forEach((place) => {
+          const marker = new window.google.maps.Marker({
+            position: {
+              lat: place.lat,
+              lng: place.lng,
+            },
+            map: googleMapRef.current,
+          });
 
-      normalized.forEach((place) => {
-        const marker = new window.google.maps.Marker({
-          position: place.latLng,
-          map: googleMapRef.current,
+          markersRef.current.push(marker);
         });
-        markersRef.current.push(marker);
-      });
-
-    } catch (err) {
-      setSearching(false);
-      showToast('Places search failed', 'error');
-    }
-  }, [location, showToast]);
-
-  // ── Highlight SOS ──────────────────────────
-  const highlightEmergency = useCallback((type) => {
-    if (!googleMapRef.current || !location) return;
-
-    const typeConfig = SERVICE_TYPES.find((t) => t.id === type);
-    if (!typeConfig) return;
-
-    googleMapRef.current.setCenter(location);
-    googleMapRef.current.setZoom(15);
-
-    if (highlightCircleRef.current) {
-      highlightCircleRef.current.setMap(null);
-    }
-
-    highlightCircleRef.current = new window.google.maps.Circle({
-      map: googleMapRef.current,
-      center: location,
-      radius: 800,
-      fillColor: typeConfig.color,
-      fillOpacity: 0.2,
-      strokeColor: typeConfig.color,
-      strokeWeight: 2,
-    });
-
-    searchNearby(type);
-  }, [location, searchNearby]);
-
-  // ── Listen for SOS event ───────────────────
-  useEffect(() => {
-    const handler = (e) => {
-      const typeMap = {
-        fire: 'fire_station',
-        medical: 'hospital',
-        security: 'police',
-      };
-
-      const target = typeMap[e.detail?.type];
-      if (target) {
-        highlightEmergency(target);
+      } catch (err) {
+        setError("Nearby search failed");
       }
-    };
 
-    window.addEventListener('sos:triggered', handler);
-    return () => window.removeEventListener('sos:triggered', handler);
-  }, [highlightEmergency]);
+      setSearching(false);
+    },
+    [location]
+  );
 
+  /* ---------------- Auto Load Default ---------------- */
   useEffect(() => {
-    if (location && mapsLoaded) {
+    if (location) {
       searchNearby(activeType);
     }
-  }, [location, mapsLoaded]);
+  }, [location]);
+
+  /* ---------------- Button Click ---------------- */
+  const handleTabClick = (type) => {
+    setActiveType(type);
+    searchNearby(type);
+  };
+
+  /* ---------------- Navigation ---------------- */
+  const openNavigation = (place) => {
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`,
+      "_blank"
+    );
+  };
+
+  /* ---------------- UI States ---------------- */
+  if (loading) {
+    return (
+      <div style={styles.center}>
+        Loading Nearby Services...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={styles.center}>
+        {error}
+      </div>
+    );
+  }
 
   return (
-    <div style={{ height: '100vh' }}>
-      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+    <div style={styles.page}>
+      <div style={styles.container}>
+        <h1 style={styles.title}>Nearby Services</h1>
+        <p style={styles.subtitle}>
+          Emergency help near your live location
+        </p>
+
+        {/* Tabs */}
+        <div style={styles.tabs}>
+          {SERVICE_TYPES.map((item) => (
+            <button
+              key={item.id}
+              onClick={() =>
+                handleTabClick(item.id)
+              }
+              style={{
+                ...styles.tab,
+                ...(activeType === item.id
+                  ? styles.activeTab
+                  : {}),
+              }}
+            >
+              <div style={{ fontSize: 28 }}>
+                {item.emoji}
+              </div>
+              <div>{item.label}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Map */}
+        <div
+          ref={mapRef}
+          style={styles.map}
+        />
+
+        {/* Loading */}
+        {searching && (
+          <div style={styles.loading}>
+            Searching nearby...
+          </div>
+        )}
+
+        {/* List */}
+        <div style={styles.list}>
+          {places.map((place, index) => (
+            <motion.div
+              key={index}
+              style={styles.card}
+              initial={{
+                opacity: 0,
+                y: 20,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              transition={{
+                duration: 0.3,
+                delay: index * 0.05,
+              }}
+            >
+              <div>
+                <div style={styles.placeName}>
+                  {place.name}
+                </div>
+
+                <div style={styles.address}>
+                  {place.address}
+                </div>
+
+                <div style={styles.rating}>
+                  ⭐ {place.rating}
+                </div>
+              </div>
+
+              <button
+                style={styles.goBtn}
+                onClick={() =>
+                  openNavigation(place)
+                }
+              >
+                GO →
+              </button>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Dark theme ───────────────────────────────
-const DARK_MAP_STYLES = [
-  { elementType:'geometry', stylers:[{ color:'#0a0a0f' }] }
-];
+/* ---------------- Styles ---------------- */
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background:
+      "linear-gradient(135deg,#05070d,#101827)",
+    padding: 20,
+    color: "white",
+    fontFamily: "Inter,sans-serif",
+  },
+
+  container: {
+    maxWidth: 1300,
+    margin: "0 auto",
+  },
+
+  title: {
+    fontSize: 42,
+    fontWeight: 800,
+    marginBottom: 5,
+  },
+
+  subtitle: {
+    color: "#8b9cc9",
+    marginBottom: 20,
+  },
+
+  tabs: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit,minmax(140px,1fr))",
+    gap: 15,
+    marginBottom: 20,
+  },
+
+  tab: {
+    background: "#0d1322",
+    border: "1px solid #1b2740",
+    color: "#9aa9cf",
+    padding: 18,
+    borderRadius: 18,
+    cursor: "pointer",
+    transition: "0.3s",
+  },
+
+  activeTab: {
+    border: "1px solid #00c2ff",
+    color: "#00c2ff",
+    boxShadow:
+      "0 0 20px rgba(0,194,255,0.25)",
+  },
+
+  map: {
+    width: "100%",
+    height: "380px",
+    borderRadius: 22,
+    overflow: "hidden",
+    marginBottom: 20,
+  },
+
+  loading: {
+    marginBottom: 15,
+    color: "#00c2ff",
+  },
+
+  list: {
+    display: "grid",
+    gap: 14,
+  },
+
+  card: {
+    background: "#0d1322",
+    border: "1px solid #1b2740",
+    padding: 18,
+    borderRadius: 18,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 15,
+    flexWrap: "wrap",
+  },
+
+  placeName: {
+    fontSize: 22,
+    fontWeight: 700,
+  },
+
+  address: {
+    color: "#9aa9cf",
+    fontSize: 14,
+    marginTop: 6,
+  },
+
+  rating: {
+    marginTop: 8,
+    color: "#ffd66b",
+  },
+
+  goBtn: {
+    background: "#081e30",
+    border: "1px solid #00c2ff",
+    color: "#00c2ff",
+    padding: "12px 20px",
+    borderRadius: 14,
+    cursor: "pointer",
+    fontWeight: 700,
+  },
+
+  center: {
+    minHeight: "100vh",
+    background: "#05070d",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    color: "white",
+    fontSize: 22,
+  },
+};

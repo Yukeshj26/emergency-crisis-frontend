@@ -70,3 +70,5 @@ node_modules/
 
 
 lora-server/serviceAccountKey.json
+
+.env.local
