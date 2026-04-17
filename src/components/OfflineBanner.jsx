@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // src/components/OfflineBanner.jsx
 import React from 'react';
 import { getPendingCount } from '../services/offlineQueue';
@@ -5,10 +6,16 @@ import { getPendingCount } from '../services/offlineQueue';
 export default function OfflineBanner({ isOnline, syncing, syncProgress }) {
   const pending = getPendingCount();
 
+=======
+import React from 'react';
+
+export default function OfflineBanner({ isOnline, syncing, syncProgress }) {
+>>>>>>> a076e50 (initial commit)
   if (isOnline && !syncing) return null;
 
   return (
     <div style={{
+<<<<<<< HEAD
       position:        'fixed',
       top:             0,
       left:            '50%',
@@ -64,6 +71,54 @@ export default function OfflineBanner({ isOnline, syncing, syncProgress }) {
         }}>
           QUEUE
         </span>
+=======
+      position: 'sticky',
+      top: 0,
+      zIndex: 50,
+      width: '100%',
+      background: isOnline
+        ? 'rgba(0,255,157,0.08)'
+        : 'rgba(255,195,0,0.08)',
+      borderBottom: `1px solid ${isOnline ? 'rgba(0,255,157,0.25)' : 'rgba(255,195,0,0.25)'}`,
+      backdropFilter: 'blur(12px)',
+      padding: '10px 24px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      animation: 'slide-down 0.3s ease',
+    }}>
+      <span style={{ fontSize: '16px' }}>{isOnline ? '🔄' : '📴'}</span>
+      <div style={{ flex: 1 }}>
+        {!isOnline && (
+          <span style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '11px',
+            fontWeight: 600,
+            color: '#ffd60a',
+            letterSpacing: '0.12em',
+          }}>
+            OFFLINE MODE — INCIDENTS QUEUED
+          </span>
+        )}
+        {syncing && (
+          <span style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '11px',
+            color: 'var(--neon-green)',
+            letterSpacing: '0.1em',
+          }}>
+            SYNCING{syncProgress ? ` ${syncProgress.synced}/${syncProgress.total}` : '...'}
+          </span>
+        )}
+      </div>
+      {!isOnline && (
+        <div style={{
+          width: '6px', height: '6px', borderRadius: '50%',
+          background: '#ffd60a',
+          boxShadow: '0 0 6px #ffd60a',
+          animation: 'pulse-dot 1.5s ease infinite',
+        }} />
+>>>>>>> a076e50 (initial commit)
       )}
     </div>
   );

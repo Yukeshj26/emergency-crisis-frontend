@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* src/styles/global.css */
 
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -12,12 +13,35 @@
   --text-primary:  #f0f0ff;
   --text-secondary:#8888aa;
   --text-muted:    #444466;
+=======
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ── DESIGN TOKENS ─────────────────────────── */
+:root {
+  --bg-void:       #020408;
+  --bg-base:       #060b12;
+  --bg-surface:    #0a1220;
+  --bg-raised:     #101c30;
+  --bg-highlight:  #162440;
+
+  --text-primary:  #e8f4ff;
+  --text-secondary:#7a9ab8;
+  --text-muted:    #3a5068;
+
+  --neon-blue:     #00d4ff;
+  --neon-purple:   #b060ff;
+  --neon-red:      #ff2050;
+  --neon-green:    #00ff9d;
+  --neon-orange:   #ff6b35;
+  --neon-yellow:   #ffd60a;
+>>>>>>> a076e50 (initial commit)
 
   --accent-fire:   #ff4500;
   --accent-med:    #00c2ff;
   --accent-sec:    #ff0040;
   --accent-ok:     #00ff88;
   --accent-warn:   #ffc300;
+<<<<<<< HEAD
   --accent-lora:   #c084fc;
 
   --border:        rgba(255,255,255,0.06);
@@ -37,6 +61,31 @@
   --shadow-lg:  0 8px 40px rgba(0,0,0,0.8);
 
   --nav-height: 64px;
+=======
+  --accent-lora:   #b060ff;
+
+  --border:        rgba(0, 212, 255, 0.08);
+  --border-active: rgba(0, 212, 255, 0.25);
+  --border-glow:   rgba(0, 212, 255, 0.5);
+
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  18px;
+  --radius-xl:  24px;
+  --radius-full:9999px;
+
+  --font-display: 'Orbitron', monospace;
+  --font-body:    'Space Grotesk', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  --shadow-sm:  0 2px 8px rgba(0,0,0,0.6);
+  --shadow-md:  0 4px 24px rgba(0,0,0,0.8);
+  --shadow-lg:  0 8px 48px rgba(0,0,0,0.9);
+  --shadow-neon: 0 0 20px rgba(0,212,255,0.3), 0 0 60px rgba(0,212,255,0.1);
+
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 64px;
+>>>>>>> a076e50 (initial commit)
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -47,6 +96,7 @@ html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+<<<<<<< HEAD
 }
 
 body {
@@ -62,10 +112,59 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--bg-highlight); border-radius: 4px; }
+=======
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 212, 255, 0.015) 2px,
+    rgba(0, 212, 255, 0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Grid bg */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--neon-blue); border-radius: 4px; opacity: 0.4; }
+>>>>>>> a076e50 (initial commit)
 
 /* ── LAYOUT ─────────────────────────────────── */
 #root {
   display: flex;
+<<<<<<< HEAD
   flex-direction: column;
   min-height: 100dvh;
   max-width: 480px;
@@ -75,27 +174,62 @@ body {
 
 /* ── TYPOGRAPHY ─────────────────────────────── */
 h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 800; line-height: 1.1; }
+=======
+  min-height: 100dvh;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── TYPOGRAPHY ─────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.05em;
+}
+>>>>>>> a076e50 (initial commit)
 .mono { font-family: var(--font-mono); }
 
 /* ── BUTTONS ────────────────────────────────── */
 button {
   cursor: pointer;
+<<<<<<< HEAD
   font-family: var(--font-display);
   border: none;
   outline: none;
   -webkit-tap-highlight-color: transparent;
   transition: all 0.15s ease;
+=======
+  font-family: var(--font-body);
+  border: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s ease;
+>>>>>>> a076e50 (initial commit)
 }
 button:active { transform: scale(0.97); }
 
 /* ── ANIMATIONS ─────────────────────────────── */
 @keyframes pulse-ring {
+<<<<<<< HEAD
   0%   { transform: scale(1);    opacity: 0.8; }
   100% { transform: scale(1.8);  opacity: 0; }
 }
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
+=======
+  0%   { transform: scale(1);    opacity: 0.6; }
+  100% { transform: scale(2.2);  opacity: 0; }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+@keyframes sos-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(255,32,80,0.5), 0 0 80px rgba(255,32,80,0.2); }
+  50%       { transform: scale(1.04); box-shadow: 0 0 60px rgba(255,32,80,0.8), 0 0 120px rgba(255,32,80,0.4), 0 0 200px rgba(255,32,80,0.1); }
+>>>>>>> a076e50 (initial commit)
 }
 @keyframes slide-up {
   from { transform: translateY(20px); opacity: 0; }
@@ -105,6 +239,13 @@ button:active { transform: scale(0.97); }
   from { transform: translateY(-20px); opacity: 0; }
   to   { transform: translateY(0);     opacity: 1; }
 }
+<<<<<<< HEAD
+=======
+@keyframes slide-in-left {
+  from { transform: translateX(-20px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+>>>>>>> a076e50 (initial commit)
 @keyframes fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -120,6 +261,7 @@ button:active { transform: scale(0.97); }
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+<<<<<<< HEAD
 @keyframes glow-fire {
   0%, 100% { box-shadow: 0 0 20px rgba(255,69,0,0.4); }
   50%       { box-shadow: 0 0 40px rgba(255,69,0,0.8), 0 0 80px rgba(255,69,0,0.3); }
@@ -135,6 +277,27 @@ button:active { transform: scale(0.97); }
 @keyframes ticker {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+=======
+@keyframes neon-flicker {
+  0%, 98%, 100% { opacity: 1; }
+  99%            { opacity: 0.6; }
+}
+@keyframes scan-line {
+  0%   { top: -10%; }
+  100% { top: 110%; }
+}
+@keyframes count-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes border-flow {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes hold-fill {
+  from { stroke-dashoffset: 440; }
+  to   { stroke-dashoffset: 0; }
+>>>>>>> a076e50 (initial commit)
 }
 
 /* ── UTILITY ────────────────────────────────── */
@@ -144,6 +307,7 @@ button:active { transform: scale(0.97); }
   clip: rect(0,0,0,0); border: 0;
 }
 
+<<<<<<< HEAD
 /* ═══════════════════════════════════════════════
    APP LAYOUT — Sidebar + Topbar
 ═══════════════════════════════════════════════ */
@@ -483,4 +647,9 @@ h3 { font-size: 18px !important; }
 /* Screen-level padding update (account for topbar) */
 .screen-content > div {
   padding-top: 16px !important;
+=======
+/* ── MOBILE RESPONSIVE ─────────────────────── */
+@media (max-width: 768px) {
+  :root { --sidebar-width: 100%; }
+>>>>>>> a076e50 (initial commit)
 }

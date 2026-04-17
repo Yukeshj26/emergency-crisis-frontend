@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import './styles/global.css';
 
+<<<<<<< HEAD
 import OfflineBanner    from './components/OfflineBanner';
 import { useToast }     from './components/Toast';
 
@@ -58,10 +59,91 @@ export default function App() {
       case 'dashboard': return <StaffDashboard showToast={showToast} />;
       case 'nearby':    return <NearbyServices showToast={showToast} />;
       default:          return <SOSScreen      isOnline={isOnline} showToast={showToast} />;
+=======
+import Sidebar        from './components/Sidebar';
+import OfflineBanner  from './components/OfflineBanner';
+import { useToast }   from './components/Toast';
+
+import SOSScreen      from './screens/SOSScreen';
+import StaffDashboard from './screens/StaffDashboard';
+import NearbyServices from './screens/NearbyServices';
+
+import { syncQueue }  from './services/offlineQueue';
+import {
+  initNotifications,
+  listenForegroundMessages
+} from './firebase/notifications';
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('sos');
+  const [isOnline, setIsOnline]   = useState(navigator.onLine);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+  const [syncing, setSyncing]           = useState(false);
+  const [syncProgress, setSyncProgress] = useState(null);
+
+  const { showToast, ToastComponent } = useToast();
+
+  useEffect(() => {
+    const handleResize = () => {
+      setSidebarOpen(window.innerWidth > 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      showToast('NETWORK RESTORED — SYNCING', 'success');
+      setSyncing(true);
+      try {
+        const result = await syncQueue();
+        if (result?.total > 0) {
+          showToast(`SYNCED ${result.synced} INCIDENT(S)`, 'success');
+        }
+      } catch (err) {
+        showToast('SYNC FAILED', 'error');
+      }
+      setTimeout(() => { setSyncing(false); setSyncProgress(null); }, 1200);
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      showToast('OFFLINE — INCIDENTS WILL BE QUEUED', 'warning');
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      initNotifications?.().then((token) => {
+        if (token) console.log('[FCM] Token ready');
+      });
+      const unsub = listenForegroundMessages?.(({ title, body }) => {
+        showToast(`${title}: ${body}`, 'info');
+      });
+      return () => unsub && unsub();
+    } catch (err) {
+      console.warn('[FCM] Not configured yet');
+    }
+  }, []);
+
+  const renderScreen = () => {
+    switch (activeTab) {
+      case 'sos':       return <SOSScreen isOnline={isOnline} showToast={showToast} />;
+      case 'dashboard': return <StaffDashboard showToast={showToast} />;
+      case 'nearby':    return <NearbyServices showToast={showToast} />;
+      default:          return <SOSScreen isOnline={isOnline} showToast={showToast} />;
+>>>>>>> a076e50 (initial commit)
     }
   };
 
   return (
+<<<<<<< HEAD
     <div className="app-root">
       <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
 
@@ -135,10 +217,62 @@ export default function App() {
         </nav>
       </div>
 
+=======
+    <div style={{
+      display: 'flex',
+      minHeight: '100dvh',
+      width: '100%',
+      background: 'var(--bg-void)',
+      position: 'relative',
+    }}>
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={(tab) => { setActiveTab(tab); if (window.innerWidth <= 768) setSidebarOpen(false); }}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        isOnline={isOnline}
+      />
+
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        marginLeft: window.innerWidth > 768 ? (sidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed)') : '0',
+        transition: 'margin-left 0.35s cubic-bezier(0.4,0,0.2,1)',
+        minHeight: '100dvh',
+        position: 'relative',
+      }}>
+        <OfflineBanner isOnline={isOnline} syncing={syncing} syncProgress={syncProgress} />
+
+        <main style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          paddingTop: (!isOnline || syncing) ? '48px' : '0',
+          transition: 'padding-top 0.3s ease',
+          minHeight: '100dvh',
+        }}>
+          {renderScreen()}
+        </main>
+      </div>
+
+      {/* Mobile overlay */}
+      {sidebarOpen && window.innerWidth <= 768 && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(4px)', zIndex: 98,
+          }}
+        />
+      )}
+
+>>>>>>> a076e50 (initial commit)
       {ToastComponent}
     </div>
   );
 }
+<<<<<<< HEAD
 
 function SosIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>;
@@ -149,3 +283,5 @@ function DashIcon() {
 function MapIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" strokeWidth="2"/></svg>;
 }
+=======
+>>>>>>> a076e50 (initial commit)
